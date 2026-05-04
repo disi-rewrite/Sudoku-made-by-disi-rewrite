@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sudoku Clone</title>
+
+<style>
+body {
+  margin:0;
+  font-family:system-ui;
+  background:#f4f6fa;
+  text-align:center;
+}
+
+/* TOP BAR */
+.topbar {
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+  font-size:14px;
+}
+
+.topbar span {
+  font-size:18px;
+  font-weight:bold;
+}
+
+/* GRID */
+#grid {
+  display:grid;
+  grid-template-columns:repeat(9,40px);
+  justify-content:center;
+  margin:10px auto;
+}
+
+.cell {
+  width:40px;
+  height:40px;
+  border:1px solid #94a3b8;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:white;
+  font-size:18px;
+}
+
+/* PERFECT GRID LINES */
+.cell:nth-child(3n) { border-right:3px solid black; }
+.cell:nth-child(9n+1) { border-left:3px solid black; }
+.cell:nth-child(-n+9) { border-top:3px solid black; }
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom:3px solid black;
+}
+
+input {
+  width:100%;
+  height:100%;
+  border:none;
+  text-align:center;
+  font-size:18px;
+}
+
+.fixed { font-weight:bold; }
+.mistake { background:#fecaca; }
+
+/* CONTROLS */
+.controls {
+  display:flex;
+  justify-content:space-around;
+  margin:10px;
+}
+
+.controls button {
+  font-size:18px;
+  background:none;
+  border:none;
+}
+
+/* NUMPAD */
+.numpad {
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  max-width:360px;
+  margin:auto;
+}
+
+.numpad button {
+  padding:10px;
+  font-size:18px;
+  border:none;
+  background:#e2e8f0;
+}
+
+/* FOOTER TEXT */
+.footer {
+  position:fixed;
+  bottom:10px;
+  left:10px;
+  font-size:12px;
+  color:#64748b;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Sudoku</h2>
+
+<div class="topbar">
+  <div>Difficulty<br><span>Easy</span></div>
+  <div>Mistakes<br><span id="mistakes">0</span></div>
+  <div>Time<br><span id="time">0</span></div>
+</div>
+
+<div id="grid"></div>
+
+<div class="controls">
+  <button onclick="undo()">↩️</button>
+  <button onclick="erase()">🧽</button>
+  <button onclick="hint()">💡</button>
+</div>
+
+<div class="numpad" id="numpad"></div>
+
+<div class="footer">made by disi-rewrite</div>
+
+<script>
+let solution, puzzle;
+let selectedInput=null;
+let mistakes=0;
+let timer=0;
+let interval;
+let history=[];
+
+/* NUMPAD */
+for(let i=1;i<=9;i++){
+  let b=document.createElement("button");
+  b.innerText=i;
+  b.onclick=()=>insertNumber(i);
+  numpad.appendChild(b);
+}
+
+/* START */
+startGame();
+
+function startGame(){
+  solution=generateBoard();
+  puzzle=makePuzzle();
+
+  draw();
+
+  timer=0;
+  clearInterval(interval);
+  interval=setInterval(()=>{
+    timer++;
+    document.getElementById("time").innerText=timer;
+  },1000);
+}
+
+/* DRAW */
+function draw(){
+  grid.innerHTML="";
+
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      let div=document.createElement("div");
+      div.className="cell";
+
+      if(puzzle[r][c]!=0){
+        div.innerText=puzzle[r][c];
+        div.classList.add("fixed");
+      } else {
+        let input=document.createElement("input");
+
+        input.onclick=()=>selectedInput=input;
+
+        div.appendChild(input);
+      }
+
+      grid.appendChild(div);
+    }
+  }
+}
+
+/* INSERT */
+function insertNumber(n){
+  if(!selectedInput) return;
+
+  let inputs=[...document.querySelectorAll("input")];
+  let index=inputs.indexOf(selectedInput);
+
+  let r=Math.floor(index/9);
+  let c=index%9;
+
+  history.push({input:selectedInput, prev:selectedInput.value});
+
+  if(solution[r][c]!=n){
+    selectedInput.parentElement.classList.add("mistake");
+    mistakes++;
+    document.getElementById("mistakes").innerText=mistakes;
+  } else {
+    selectedInput.value=n;
+    selectedInput.parentElement.classList.remove("mistake");
+  }
+}
+
+/* ERASE */
+function erase(){
+  if(selectedInput){
+    history.push({input:selectedInput, prev:selectedInput.value});
+    selectedInput.value="";
+  }
+}
+
+/* UNDO */
+function undo(){
+  let last=history.pop();
+  if(last) last.input.value=last.prev;
+}
+
+/* HINT */
+function hint(){
+  let inputs=document.querySelectorAll("input");
+
+  for(let i=0;i<inputs.length;i++){
+    if(inputs[i].value===""){
+      let r=Math.floor(i/9);
+      let c=i%9;
+      inputs[i].value=solution[r][c];
+      return;
+    }
+  }
+}
+
+/* GENERATOR */
+function generateBoard(){
+  let board=Array.from({length:9},()=>Array(9).fill(0));
+
+  function valid(r,c,n){
+    for(let i=0;i<9;i++){
+      if(board[r][i]==n||board[i][c]==n) return false;
+    }
+    let br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+    for(let i=0;i<3;i++)
+      for(let j=0;j<3;j++)
+        if(board[br+i][bc+j]==n) return false;
+    return true;
+  }
+
+  function solve(){
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        if(board[r][c]==0){
+          for(let n=1;n<=9;n++){
+            if(valid(r,c,n)){
+              board[r][c]=n;
+              if(solve()) return true;
+              board[r][c]=0;
+            }
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  solve();
+  return board;
+}
+
+function makePuzzle(){
+  let p=solution.map(r=>r.slice());
+  let remove=40;
+
+  while(remove--){
+    let r=Math.floor(Math.random()*9);
+    let c=Math.floor(Math.random()*9);
+    p[r][c]=0;
+  }
+
+  return p;
+}
+</script>
+
+</body>
+</html>
