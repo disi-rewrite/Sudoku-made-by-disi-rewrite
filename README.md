@@ -1,2 +1,7 @@
-# Sudoku-made-by-disi-rewrite
-An replica to sudoku.com but html not js
+<p style="color:green;">
+🟩 Sudoku Game — Clean, fast, and mobile-friendly.
+Built with HTML, CSS, and JavaScript.
+
+Made by disi-rewrite 💚
+</p>
+
